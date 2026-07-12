@@ -6,7 +6,7 @@
 # What this pipeline does, in order, and WHY each step exists:
 #   1. checkout          -- pull the repo so subsequent steps have the code.
 #   2. setup-python       -- pin the exact Python version used in development
-#                             (3.11), so CI behaviour matches local behaviour.
+#                             (3.14), so CI behaviour matches local behaviour.
 #   3. cache pip           -- speeds up repeat CI runs by reusing downloaded
 #                             wheels (scikit-learn/xgboost/mlflow are large).
 #   4. install deps         -- `pip install -r requirements.txt`, from a
@@ -61,10 +61,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
+      - name: Set up Python 3.14
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.14"
           cache: "pip"
 
       - name: Install dependencies (clean environment)
@@ -117,10 +117,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
+      - name: Set up Python 3.14
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.14"
           cache: "pip"
 
       - name: Install dependencies

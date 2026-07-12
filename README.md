@@ -117,9 +117,12 @@ kubectl apply -f k8s/service.yaml
 kubectl get pods -l app=heart-disease-api
 kubectl get svc heart-disease-api-service
 
-# The LoadBalancer Service is reachable at localhost:8080 on Docker Desktop
-curl http://localhost:8080/health
-curl -X POST http://localhost:8080/predict -H "Content-Type: application/json" -d '{"age":63,"sex":1,"cp":1,"trestbps":145,"chol":233,"fbs":1,"restecg":2,"thalach":150,"exang":0,"oldpeak":2.3,"slope":3,"ca":0,"thal":6}'
+# The LoadBalancer Service is reachable at localhost:8082 on Docker Desktop
+# (mapped to 8082 instead of the more common 8080 only because 8080 was
+# already taken by another local process on the reference dev machine --
+# change k8s/service.yaml's `port:` back to 8080 if that's free on yours)
+curl http://localhost:8082/health
+curl -X POST http://localhost:8082/predict -H "Content-Type: application/json" -d '{"age":63,"sex":1,"cp":1,"trestbps":145,"chol":233,"fbs":1,"restecg":2,"thalach":150,"exang":0,"oldpeak":2.3,"slope":3,"ca":0,"thal":6}'
 ```
 
 ## 5. Monitoring (Prometheus + Grafana)
@@ -135,7 +138,7 @@ docker compose -f docker-compose.monitoring.yml up -d
 
 > By default `monitoring/prometheus.yml` scrapes `host.docker.internal:8000` (the API
 > running via `docker run -p 8000:8000`). If you're monitoring the Kubernetes deployment
-> instead, change the target to `host.docker.internal:8080`.
+> instead, change the target to `host.docker.internal:8082`.
 
 ## 6. CI/CD
 

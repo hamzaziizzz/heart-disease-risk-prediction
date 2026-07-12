@@ -5,12 +5,17 @@
 #
 # Why LoadBalancer (not NodePort or Ingress) for this assignment?
 #   Docker Desktop's built-in Kubernetes implements LoadBalancer services by
-#   binding directly to localhost on the requested port -- so
-#   `kubectl get svc` will show EXTERNAL-IP as "localhost", and the API is
-#   immediately reachable at http://localhost:8080 with zero extra
+#   binding directly to localhost on the requested port, so the API becomes
+#   immediately reachable at http://localhost:<port> with zero extra
 #   Ingress-controller setup. This is the lowest-friction option that still
 #   satisfies the assignment's "Expose via Load Balancer or Ingress"
 #   requirement, which matters given the tight time budget.
+#
+# Port 8080 (Docker Desktop K8s's usual default for this kind of demo) was
+# already bound by an unrelated local Apache httpd process on this dev
+# machine, and 8081 by an unrelated Kafka UI tool, so this is deliberately
+# mapped to 8082 instead -- purely a local port-availability choice, not a
+# functional requirement. Adjust freely to whatever's free on your machine.
 # ==============================================================================
 
 apiVersion: v1
@@ -26,5 +31,5 @@ spec:
   ports:
     - name: http
       protocol: TCP
-      port: 8080          # external port -> http://localhost:8080
+      port: 8082          # external port -> http://localhost:8082
       targetPort: 8000     # container port (must match containerPort above)

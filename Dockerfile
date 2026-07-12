@@ -5,13 +5,14 @@
 # the trained scikit-learn pipeline via the FastAPI app in api/main.py.
 #
 # Design choices (and why):
-#   1. Multi-stage-free but slim base image (python:3.11-slim) -- balances
-#      build speed against image size; -slim avoids the ~1GB `python:3.11`
+#   1. Multi-stage-free but slim base image (python:3.14-slim) -- balances
+#      build speed against image size; -slim avoids the ~1GB `python:3.14`
 #      full image while still shipping apt/pip so wheels for scikit-learn/
 #      xgboost/mlflow install without needing a full build toolchain (these
 #      ship manylinux wheels on PyPI, so no gcc is even required here, but
 #      slim keeps a small margin of safety for any package that DOES need
-#      to compile).
+#      to compile). Pinned to 3.14 to match the Pipfile/requirements.txt
+#      resolution -- newer numpy/scikit-learn/xgboost pins require 3.11+/3.12+.
 #   2. Dependencies are installed in their OWN layer, copied BEFORE the
 #      application code -- Docker layer caching means `pip install` only
 #      re-runs when requirements.txt changes, not on every code edit. This
@@ -34,7 +35,7 @@
 #      limitation/future-work item in the final report.)
 # ==============================================================================
 
-FROM python:3.11-slim
+FROM python:3.14-slim
 
 # Prevents Python from writing .pyc files and buffers stdout -- keeps
 # container logs flowing to `docker logs` / `kubectl logs` immediately

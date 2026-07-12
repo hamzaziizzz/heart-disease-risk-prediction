@@ -73,10 +73,10 @@ kubectl apply -f k8s/deployment.yaml
 kubectl apply -f k8s/service.yaml
 kubectl get pods -l app=heart-disease-api      # wait until both show Running/Ready 1/1
 kubectl get svc heart-disease-api-service
-curl http://localhost:8080/health
-curl -X POST http://localhost:8080/predict -H "Content-Type: application/json" -d "{\"age\":63,\"sex\":1,\"cp\":1,\"trestbps\":145,\"chol\":233,\"fbs\":1,\"restecg\":2,\"thalach\":150,\"exang\":0,\"oldpeak\":2.3,\"slope\":3,\"ca\":0,\"thal\":6}"
+curl http://localhost:8082/health
+curl -X POST http://localhost:8082/predict -H "Content-Type: application/json" -d "{\"age\":63,\"sex\":1,\"cp\":1,\"trestbps\":145,\"chol\":233,\"fbs\":1,\"restecg\":2,\"thalach\":150,\"exang\":0,\"oldpeak\":2.3,\"slope\":3,\"ca\":0,\"thal\":6}"
 ```
-📸 **Screenshots:** `kubectl get pods`, `kubectl get svc`, the curl response via port 8080.
+📸 **Screenshots:** `kubectl get pods`, `kubectl get svc`, the curl response via port 8082.
 
 ### Phase 6 — Monitoring (30 min)
 ```bash
