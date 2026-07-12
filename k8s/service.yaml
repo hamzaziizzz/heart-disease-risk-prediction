@@ -1,0 +1,30 @@
+# ==============================================================================
+# k8s/service.yaml
+# ==============================================================================
+# Exposes the heart-disease-api Deployment via a LoadBalancer Service.
+#
+# Why LoadBalancer (not NodePort or Ingress) for this assignment?
+#   Docker Desktop's built-in Kubernetes implements LoadBalancer services by
+#   binding directly to localhost on the requested port -- so
+#   `kubectl get svc` will show EXTERNAL-IP as "localhost", and the API is
+#   immediately reachable at http://localhost:8080 with zero extra
+#   Ingress-controller setup. This is the lowest-friction option that still
+#   satisfies the assignment's "Expose via Load Balancer or Ingress"
+#   requirement, which matters given the tight time budget.
+# ==============================================================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: heart-disease-api-service
+  labels:
+    app: heart-disease-api
+spec:
+  type: LoadBalancer
+  selector:
+    app: heart-disease-api
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8080          # external port -> http://localhost:8080
+      targetPort: 8000     # container port (must match containerPort above)

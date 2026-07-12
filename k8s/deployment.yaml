@@ -1,0 +1,78 @@
+# ==============================================================================
+# k8s/deployment.yaml
+# ==============================================================================
+# Assignment Task 7: Production Deployment (Docker Desktop Kubernetes target).
+#
+# Deploys 2 replicas of the Heart Disease API container behind a Kubernetes
+# Deployment, with liveness/readiness probes wired to the same /health
+# endpoint used by the Docker HEALTHCHECK, and resource requests/limits so a
+# runaway container cannot starve the local Docker Desktop node.
+#
+# Why 2 replicas (not 1)?
+#   Demonstrates the core value proposition of Kubernetes for this
+#   assignment -- rolling updates and self-healing only mean something with
+#   more than one pod. If one pod crashes, the Service (see service.yaml)
+#   keeps routing to the other while Kubernetes restarts the failed one.
+#
+# Why `imagePullPolicy: Never`?
+#   For a LOCAL Docker Desktop Kubernetes cluster, images built with
+#   `docker build` land directly in the same local image cache the
+#   cluster's node uses (Docker Desktop K8s shares the Docker daemon).
+#   `Never` tells Kubernetes "don't try to pull from a registry, use the
+#   local image" -- avoids a confusing ImagePullBackOff for a purely local
+#   deployment. (If you push this image to a real registry / cloud cluster,
+#   change this to `IfNotPresent` or `Always` and set a real `image:` tag.)
+# ==============================================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: heart-disease-api
+  labels:
+    app: heart-disease-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: heart-disease-api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0   # zero-downtime rolling updates
+  template:
+    metadata:
+      labels:
+        app: heart-disease-api
+    spec:
+      containers:
+        - name: heart-disease-api
+          image: heart-disease-api:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8000
+              name: http
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            failureThreshold: 3
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "1"

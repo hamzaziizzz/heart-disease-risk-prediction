@@ -1,0 +1,31 @@
+# ==============================================================================
+# monitoring/prometheus.yml
+# ==============================================================================
+# Assignment Task 8: Monitoring & Logging.
+#
+# Tells Prometheus to scrape the /metrics endpoint exposed by our FastAPI
+# app (via prometheus-fastapi-instrumentator, wired in api/main.py) every 5
+# seconds. This turns raw request counts/latencies into a time series
+# Grafana can chart.
+#
+# `host.docker.internal` is the special DNS name Docker Desktop provides for
+# containers to reach services running on the HOST machine (e.g. the API
+# running via `docker run -p 8000:8000` OR forwarded from the K8s Service at
+# localhost:8080). If your API container is instead started as part of THIS
+# same docker-compose file, replace the target with the API's compose
+# service name (e.g. "api:8000") -- see the commented alternative below.
+# ==============================================================================
+
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  - job_name: "heart-disease-api"
+    metrics_path: /metrics
+    static_configs:
+      # Default: API running locally via `docker run -p 8000:8000 ...`
+      - targets: ["host.docker.internal:8000"]
+      # Alternative if the API is a service named "api" in this same
+      # docker-compose.monitoring.yml file:
+      #   - targets: ["api:8000"]

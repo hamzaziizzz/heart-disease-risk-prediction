@@ -1,0 +1,52 @@
+# ==============================================================================
+# monitoring/docker-compose.monitoring.yml
+# ==============================================================================
+# Assignment Task 8: Monitoring & Logging -- "Demonstrate simple monitoring
+# (Prometheus + Grafana or API metrics/logs dashboard)".
+#
+# Spins up Prometheus (scrapes our API's /metrics endpoint) and Grafana
+# (visualizes those metrics) as two containers, entirely separate from the
+# API's own Dockerfile/K8s deployment -- this mirrors how monitoring
+# infrastructure is deployed independently of application services in real
+# production systems.
+#
+# Usage:
+#   1. Start the API first (either `docker run -p 8000:8000 heart-disease-api`
+#      or via the K8s Service at localhost:8080 -- update
+#      monitoring/prometheus.yml's target accordingly).
+#   2. From the monitoring/ directory: docker compose -f docker-compose.monitoring.yml up -d
+#   3. Prometheus UI:  http://localhost:9090  (Status > Targets to confirm the
+#      "heart-disease-api" job is UP)
+#   4. Grafana UI:      http://localhost:3000  (default login admin/admin) --
+#      add a Prometheus data source pointing at http://prometheus:9090, then
+#      import the dashboard JSON at monitoring/grafana-dashboard.json.
+# ==============================================================================
+
+version: "3.8"
+
+services:
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: heart-disease-prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    extra_hosts:
+      # Lets the Prometheus container resolve host.docker.internal on Linux
+      # hosts too (Docker Desktop on Mac/Windows provides this automatically).
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: heart-disease-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+    depends_on:
+      - prometheus
+    restart: unless-stopped

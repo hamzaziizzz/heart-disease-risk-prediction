@@ -1,0 +1,146 @@
+# ==============================================================================
+# .github/workflows/ci.yml
+# ==============================================================================
+# Assignment Task 5: CI/CD Pipeline & Automated Testing.
+#
+# What this pipeline does, in order, and WHY each step exists:
+#   1. checkout          -- pull the repo so subsequent steps have the code.
+#   2. setup-python       -- pin the exact Python version used in development
+#                             (3.11), so CI behaviour matches local behaviour.
+#   3. cache pip           -- speeds up repeat CI runs by reusing downloaded
+#                             wheels (scikit-learn/xgboost/mlflow are large).
+#   4. install deps         -- `pip install -r requirements.txt`, from a
+#                             clean environment every run -- this is exactly
+#                             the "all scripts must execute from clean setup
+#                             using requirements file" production-readiness
+#                             requirement in the assignment brief.
+#   5. lint (flake8)         -- fails the build on code-quality errors
+#                             (unused imports, syntax issues, undefined
+#                             names) BEFORE wasting time training a model.
+#   6. download + clean data  -- regenerates data/processed/heart_disease_clean.csv
+#                             from the UCI source so the pipeline is proven
+#                             reproducible from raw data, not just from a
+#                             committed CSV.
+#   7. train model             -- runs src/train.py, which also re-creates the
+#                             models/heart_disease_pipeline.joblib artifact
+#                             the API tests need.
+#   8. unit tests (pytest)      -- runs the full tests/ suite (data
+#                             processing, feature pipeline, and API tests).
+#                             A failing test FAILS THE BUILD (pytest's
+#                             non-zero exit code propagates to the job,
+#                             satisfying "pipeline must fail on ... test
+#                             errors and give clear logs").
+#   9. upload artifacts          -- publishes the trained model, metrics
+#                             summary, and evaluation plots as downloadable
+#                             GitHub Actions artifacts for this run, and the
+#                             JUnit-style pytest report, satisfying
+#                             "Artifacts/logging for each workflow run".
+#  10. Docker build check        -- builds (but does not push) the Docker
+#                             image, proving the container builds cleanly in
+#                             CI, not just on the developer's laptop.
+#
+# Trigger: runs on every push and pull request targeting `main`, so broken
+# code cannot be merged silently.
+# ==============================================================================
+
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch: {}   # allow manual triggering from the Actions tab
+
+jobs:
+  lint-test-train:
+    name: Lint, Test, and Train
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies (clean environment)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Lint with flake8
+        run: |
+          python -m flake8 --max-line-length=110 --extend-ignore=E203,W503 src/ api/ tests/
+
+      - name: Download & clean dataset
+        run: |
+          python src/download_data.py
+
+      - name: Train models & log to MLflow
+        env:
+          MLFLOW_TRACKING_URI: sqlite:///mlflow.db
+        run: |
+          python src/train.py
+
+      - name: Run unit tests (pytest)
+        run: |
+          python -m pytest tests/ -v --junitxml=reports/junit.xml
+
+      - name: Upload trained model & metrics artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: model-artifacts
+          path: |
+            models/
+            reports/figures/
+          retention-days: 14
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: reports/junit.xml
+          retention-days: 14
+
+  docker-build:
+    name: Docker Build Validation
+    runs-on: ubuntu-latest
+    needs: lint-test-train
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Regenerate data + model (needed inside the image)
+        run: |
+          python src/download_data.py
+          python src/train.py
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image (validation only, not pushed)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: heart-disease-api:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

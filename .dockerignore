@@ -1,0 +1,20 @@
+# Keep the build context small and avoid leaking local/dev-only files into the image.
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.git/
+.github/
+notebooks/.ipynb_checkpoints/
+data/raw/
+mlruns/
+mlflow.db
+reports/figures/
+screenshots/
+*.md
+k8s/
+monitoring/
+tests/
+.dockerignore
+Dockerfile
